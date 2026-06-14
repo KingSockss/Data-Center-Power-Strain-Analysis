@@ -1,0 +1,14 @@
+PJM_DOM:
+  rto: PJM
+  zone: DOM
+  zone_name: Dominion
+  timezone: America/New_York
+  weather_points:
+    - name: Dulles_Airport
+      station_hint: KIAD
+      latitude: 38.9445
+      longitude: -77.4558
+      weight: 1.0
+  price_locations:
+    - DOM
+    - PJM_WESTERN_HUB

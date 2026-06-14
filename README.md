@@ -1,2 +1,136 @@
-# Data-Center-Power-Strain-Analysis
-Analyzing the effect and strain that data centers have on the power grid, as well as forecasting disturbances in demand.
+# PJM DOM Power Grid Data Collection
+
+This project is the first data-collection layer for a PJM / DOM power-grid and data-center infrastructure research workflow. It collects, standardizes, stores, lightly merges, and visualizes raw operating, price, and weather data for later analysis.
+
+It does not build forecasting models, machine-learning pipelines, or causal claims about data-center electricity use.
+
+## Focus
+
+- Geography: PJM, DOM / Dominion zone.
+- Practical interpretation: Dominion territory with emphasis on Northern Virginia, Ashburn, and Loudoun County data-center concentration.
+- Weather proxy: Dulles Airport / Ashburn-area coordinates.
+
+## Data Sources
+
+- EIA Open Data API / EIA-930-style RTO data: PJM hourly actual demand, forecast demand, net generation, and interchange where available.
+- PJM Data Miner: real-time hourly LMP and day-ahead hourly LMP for configured price locations.
+- PJM Data Miner load feed: attempts DOM hourly metered/service-territory load if available.
+- Open-Meteo archive API: hourly historical weather for configured weather points.
+
+## Required API Keys
+
+Create a `.env` file from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Then set:
+
+```text
+EIA_API_KEY=your_eia_key
+PJM_API_KEY=your_pjm_data_miner_subscription_key_optional_until_pjm_is_enabled
+```
+
+Open-Meteo does not require an API key for the usage pattern in this project. PJM Data Miner is temporarily skipped by default while API access is pending. When PJM is enabled, its API calls use `PJM_API_KEY`; if PJM returns `401 Unauthorized`, the key is missing, invalid, or not subscribed/authorized for the requested Data Miner feed.
+
+The default pipeline requires `EIA_API_KEY` before it can pull EIA-930 / EIA Open Data API data. It only requires `PJM_API_KEY` when running with `--enable-pjm`.
+
+## Install
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Run
+
+Current default mode skips PJM and pulls EIA plus weather only:
+
+```bash
+python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM
+```
+
+If your shell or editor runs `/usr/local/bin/python3` directly, use the virtual environment path explicitly:
+
+```bash
+.venv/bin/python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM
+```
+
+When PJM API access is ready, re-enable PJM Data Miner pulls:
+
+```bash
+python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM --enable-pjm
+```
+
+If the PJM DOM load feed is unavailable but you still want the rest of the dataset:
+
+```bash
+python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM --enable-pjm --continue-without-pjm-load
+```
+
+## Configuration
+
+The first region is configured in `config/regions.yaml`:
+
+- `PJM_DOM`
+- RTO: `PJM`
+- Zone: `DOM`
+- Weather point: Dulles Airport / KIAD proxy
+- Price locations: `DOM` and `PJM_WESTERN_HUB`
+
+The pipeline is config-driven so additional PJM zones can be added later without rewriting the source modules.
+
+## Outputs
+
+Raw responses and records:
+
+- `data/raw/eia930/`
+- `data/raw/pjm_lmp/`
+- `data/raw/pjm_load/`
+- `data/raw/weather/`
+
+Cleaned source-specific datasets:
+
+- `data/processed/grid/`
+- `data/processed/prices/`
+- `data/processed/weather/`
+
+Final merged hourly dataset:
+
+- `data/processed/merged/hourly_pjm_dom_dataset.parquet`
+- `data/processed/merged/hourly_pjm_dom_dataset.csv`
+
+Metadata:
+
+- `data/metadata/source_log.csv`
+- `data/metadata/data_dictionary.csv`
+- `data/metadata/locations.csv`
+
+Plotly sanity-check charts:
+
+- `outputs/plots/*.html`
+
+## Plot Outputs
+
+The pipeline writes simple exploratory HTML charts for:
+
+1. Actual load vs forecast load
+2. Load forecast error
+3. Real-time LMP vs day-ahead LMP
+4. RT - DA LMP spread
+5. Congestion component
+6. Temperature and cooling degree hours
+7. Temperature vs load
+8. Temperature vs real-time LMP
+9. Average load heatmap by hour and weekday
+10. Average real-time LMP heatmap by hour and weekday
+
+## Known Limitations
+
+- EIA-930 / EIA RTO data is often balancing-authority-level. It is useful for PJM-wide operating context but is not a perfect DOM-zone load source.
+- Data-center-specific electricity usage is usually not directly public. This project does not infer or claim direct data-center load.
+- Weather is proxied by Dulles/Ashburn and should be expanded later if the analysis requires broader Dominion weather coverage.
+- PJM reserve, emergency, and reliability-alert data can be limited or not exposed through the same public feeds. The merged dataset keeps nullable fields rather than inventing values.
+- PJM Data Miner feed schemas and access requirements can differ. The code is schema-tolerant for common column names, but feed-level changes should fail clearly.
