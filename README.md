@@ -29,12 +29,12 @@ Then set:
 
 ```text
 EIA_API_KEY=your_eia_key
-PJM_API_KEY=your_pjm_data_miner_subscription_key_optional_until_pjm_is_enabled
+PJM_API_KEY=your_pjm_data_miner_subscription_key
 ```
 
-Open-Meteo does not require an API key for the usage pattern in this project. PJM Data Miner is temporarily skipped by default while API access is pending. When PJM is enabled, its API calls use `PJM_API_KEY`; if PJM returns `401 Unauthorized`, the key is missing, invalid, or not subscribed/authorized for the requested Data Miner feed.
+Open-Meteo does not require an API key for the usage pattern in this project. PJM Data Miner API calls use `PJM_API_KEY`; if PJM returns `401 Unauthorized`, the key is missing, invalid, or not subscribed/authorized for the requested Data Miner feed.
 
-The default pipeline requires `EIA_API_KEY` before it can pull EIA-930 / EIA Open Data API data. It only requires `PJM_API_KEY` when running with `--enable-pjm`.
+The pipeline requires `EIA_API_KEY` before it can pull EIA-930 / EIA Open Data API data, and `PJM_API_KEY` before it can pull PJM LMP/load feeds.
 
 ## Install
 
@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 ## Run
 
-Current default mode skips PJM and pulls EIA plus weather only:
+Run the full EIA, PJM, weather, merge, and plotting pipeline:
 
 ```bash
 python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM
@@ -58,16 +58,10 @@ If your shell or editor runs `/usr/local/bin/python3` directly, use the virtual 
 .venv/bin/python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM
 ```
 
-When PJM API access is ready, re-enable PJM Data Miner pulls:
-
-```bash
-python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM --enable-pjm
-```
-
 If the PJM DOM load feed is unavailable but you still want the rest of the dataset:
 
 ```bash
-python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM --enable-pjm --continue-without-pjm-load
+python main.py --start 2024-01-01 --end 2024-12-31 --region PJM_DOM --continue-without-pjm-load
 ```
 
 ## Configuration

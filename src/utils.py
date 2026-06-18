@@ -44,7 +44,7 @@ def request_json(
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
     timeout: int = 60,
-    retries: int = 3,
+    retries: int = 5,
     backoff_seconds: float = 1.5,
 ) -> dict[str, Any]:
     last_error: Exception | None = None
@@ -56,15 +56,25 @@ def request_json(
         except requests.HTTPError as exc:
             last_error = exc
             status = exc.response.status_code if exc.response is not None else None
-            if status in {401, 403} or attempt == retries:
+            if status in {400, 401, 403} or attempt == retries:
                 break
+            if status == 429 and exc.response is not None:
+                retry_after = exc.response.headers.get("Retry-After")
+                if retry_after and retry_after.isdigit():
+                    time.sleep(float(retry_after))
+                else:
+                    time.sleep(max(10.0, backoff_seconds * attempt * 5))
+                continue
             time.sleep(backoff_seconds * attempt)
         except Exception as exc:  # noqa: BLE001
             last_error = exc
             if attempt == retries:
                 break
             time.sleep(backoff_seconds * attempt)
-    raise RuntimeError(f"GET failed after {retries} attempts: {url}") from last_error
+    details = ""
+    if isinstance(last_error, requests.HTTPError) and last_error.response is not None:
+        details = f" Status {last_error.response.status_code}: {last_error.response.text[:1000]}"
+    raise RuntimeError(f"GET failed after {retries} attempts: {url}.{details}") from last_error
 
 
 def save_json(payload: Any, path: Path) -> None:

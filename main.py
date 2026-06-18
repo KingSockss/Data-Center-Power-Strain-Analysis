@@ -7,8 +7,6 @@ from typing import Any
 
 def load_pipeline_modules() -> dict[str, Any]:
     try:
-        import pandas as pd
-
         from src.config import METADATA_DIR, ensure_project_dirs, get_region, load_environment
         from src.ingest_eia930 import safe_fetch_eia930
         from src.ingest_pjm_lmp import fetch_pjm_lmp
@@ -40,14 +38,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--end", required=True, help="End date, YYYY-MM-DD.")
     parser.add_argument("--region", default="PJM_DOM", help="Region id from config/regions.yaml.")
     parser.add_argument(
-        "--enable-pjm",
-        action="store_true",
-        help="Enable PJM Data Miner LMP/load pulls. PJM is skipped by default until API access is ready.",
-    )
-    parser.add_argument(
         "--continue-without-pjm-load",
         action="store_true",
-        help="With --enable-pjm, continue with nullable DOM load if the PJM load feed is unavailable.",
+        help="Continue with nullable DOM load if the PJM load feed is unavailable.",
     )
     return parser.parse_args()
 
@@ -66,7 +59,6 @@ def main() -> None:
     load_environment = modules["load_environment"]
     make_plots = modules["make_plots"]
     merge_hourly = modules["merge_hourly"]
-    pd = modules["pd"]
     parse_date_arg = modules["parse_date_arg"]
     safe_fetch_eia930 = modules["safe_fetch_eia930"]
     transform_eia930 = modules["transform_eia930"]
@@ -81,7 +73,7 @@ def main() -> None:
 
     load_environment()
     ensure_project_dirs()
-    validate_required_environment(enable_pjm=args.enable_pjm)
+    validate_required_environment()
     region = get_region(args.region)
     write_locations_metadata(region, METADATA_DIR)
 
@@ -90,34 +82,19 @@ def main() -> None:
     raw_eia = safe_fetch_eia930(start_date, end_date, region)
     grid = transform_eia930(raw_eia, region)
 
-    if args.enable_pjm:
-        raw_prices = fetch_pjm_lmp(start_date, end_date, region)
-        prices = transform_prices(raw_prices, region)
+    raw_prices = fetch_pjm_lmp(start_date, end_date, region)
+    prices = transform_prices(raw_prices, region)
 
-        try:
-            raw_pjm_load = fetch_pjm_load(start_date, end_date, region)
-        except Exception as exc:  # noqa: BLE001
-            if not args.continue_without_pjm_load:
-                raise RuntimeError(
-                    "PJM DOM load feed was unavailable or did not match the expected schema. "
-                    "Re-run with --enable-pjm --continue-without-pjm-load to keep nullable dom_load_mw."
-                ) from exc
-            raw_pjm_load = empty_pjm_load_frame(start_date, end_date, str(exc))
-        pjm_load = transform_pjm_load(raw_pjm_load, region)
-    else:
-        print("Skipping PJM Data Miner LMP/load pulls. Re-enable later with --enable-pjm.")
-        append_source_log(
-            METADATA_DIR / "source_log.csv",
-            "PJM Data Miner",
-            "rt_hrl_lmps, da_hrl_lmps, hrl_load_metered",
-            start_date,
-            end_date,
-            0,
-            "skipped",
-            "PJM temporarily disabled until API access is ready; use --enable-pjm to run these feeds.",
-        )
-        prices = transform_prices(pd.DataFrame(), region)
-        pjm_load = transform_pjm_load(pd.DataFrame(), region)
+    try:
+        raw_pjm_load = fetch_pjm_load(start_date, end_date, region)
+    except Exception as exc:  # noqa: BLE001
+        if not args.continue_without_pjm_load:
+            raise RuntimeError(
+                "PJM DOM load feed was unavailable or did not match the expected schema. "
+                "Re-run with --continue-without-pjm-load to keep nullable dom_load_mw."
+            ) from exc
+        raw_pjm_load = empty_pjm_load_frame(start_date, end_date, str(exc))
+    pjm_load = transform_pjm_load(raw_pjm_load, region)
 
     raw_weather = fetch_weather(start_date, end_date, region)
     weather = transform_weather(raw_weather, region)
@@ -138,17 +115,17 @@ def main() -> None:
     print(f"Pipeline complete. Merged rows={len(merged)} plots={len(plot_paths)}")
 
 
-def validate_required_environment(enable_pjm: bool = False) -> None:
+def validate_required_environment() -> None:
     if not os.getenv("EIA_API_KEY", "").strip():
         raise SystemExit(
             "Missing required EIA_API_KEY.\n\n"
             "Create or update .env in the project root:\n"
             "  EIA_API_KEY=your_eia_api_key\n"
-            "  PJM_API_KEY=your_pjm_data_miner_subscription_key_optional_until_pjm_is_enabled\n\n"
+            "  PJM_API_KEY=your_pjm_data_miner_subscription_key\n\n"
             "Then rerun:\n"
             "  python main.py --start 2024-01-01 --end 2024-01-31 --region PJM_DOM\n"
         )
-    if enable_pjm and not os.getenv("PJM_API_KEY", "").strip():
+    if not os.getenv("PJM_API_KEY", "").strip():
         raise SystemExit(
             "Missing required PJM_API_KEY.\n\n"
             "The PJM Data Miner API returned 401 Unauthorized without a subscription key. "
@@ -156,7 +133,7 @@ def validate_required_environment(enable_pjm: bool = False) -> None:
             "  EIA_API_KEY=your_eia_api_key\n"
             "  PJM_API_KEY=your_pjm_data_miner_subscription_key\n\n"
             "Then rerun:\n"
-            "  python main.py --start 2024-01-01 --end 2024-01-31 --region PJM_DOM --enable-pjm\n"
+            "  python main.py --start 2024-01-01 --end 2024-01-31 --region PJM_DOM\n"
         )
 
 
