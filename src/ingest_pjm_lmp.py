@@ -91,7 +91,9 @@ def _fetch_feed(
             raise
         save_json(
             payload,
-            RAW_DIR / "pjm_lmp" / f"{region.region_id}_{feed_name}_{slugify(location)}_{start_row}.json",
+            RAW_DIR
+            / "pjm_lmp"
+            / f"{region.region_id}_{feed_name}_{slugify(location)}_{start_date}_{end_date}_{start_row}.json",
         )
         rows = _records_from_payload(payload)
         if location_type:

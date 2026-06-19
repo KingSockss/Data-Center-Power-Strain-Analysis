@@ -96,6 +96,8 @@ Final merged hourly dataset:
 - `data/processed/merged/hourly_pjm_dom_dataset.parquet`
 - `data/processed/merged/hourly_pjm_dom_dataset.csv`
 
+These merged files are the canonical latest run output and are overwritten by each run. Raw source pulls include the requested date range in their filenames for provenance.
+
 Metadata:
 
 - `data/metadata/source_log.csv`
@@ -120,6 +122,25 @@ The pipeline writes simple exploratory HTML charts for:
 8. Temperature vs real-time LMP
 9. Average load heatmap by hour and weekday
 10. Average real-time LMP heatmap by hour and weekday
+11. Load, temperature, and DOM congestion synchronized time overlay
+12. DOM real-time LMP, temperature, and DOM congestion synchronized time overlay
+13. Load and DOM real-time LMP synchronized time overlay
+
+## First Models
+
+Baseline forecasts live in `Baselines/`:
+
+```bash
+python Baselines/run_baselines.py
+```
+
+Model V0.1 lives in `Model_V0.1/`:
+
+```bash
+python Model_V0.1/run_ridge_model.py
+```
+
+Both scripts use the canonical merged dataset at `data/processed/merged/hourly_pjm_dom_dataset.parquet`. They train/reference on the first nine months and report test metrics on the final three months.
 
 ## Known Limitations
 
