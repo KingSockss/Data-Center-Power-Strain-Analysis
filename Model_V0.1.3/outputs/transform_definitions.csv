@@ -1,0 +1,9 @@
+feature,formula
+target_load_x_congestion_t_minus_1,target_pjm_forecast_load_mw * congestion_t_minus_1
+target_load_x_hour_sin,target_pjm_forecast_load_mw * hour_sin
+target_load_x_hour_cos,target_pjm_forecast_load_mw * hour_cos
+temp_t_minus_1_squared,temp_t_minus_1 ** 2
+congestion_t_minus_1_squared,congestion_t_minus_1 ** 2
+target_forecast_load_squared,target_pjm_forecast_load_mw ** 2
+ln_target_dom_da_lmp,"ln(target_dom_da_lmp), positive prices only"
+load_congestion_squared_over_lmp_forecast,(target_pjm_forecast_load_mw * congestion_t_minus_1) ** 2 / target_dom_da_lmp

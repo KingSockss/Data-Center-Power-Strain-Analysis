@@ -1,0 +1,8 @@
+setting,value
+horizon_hours,24
+alpha,10.0
+train_rows,6527
+test_rows,2155
+load_source,DOM Load MW
+base_features,"lmp_t_minus_1, lmp_t_minus_24, load_t_minus_1, load_t_minus_24, congestion_t_minus_1, congestion_t_minus_24, temp_t_minus_1, temp_t_minus_24, hour_sin, hour_cos, day_sin, day_cos, month_sin, month_cos, is_weekend_binary, lmp_sma_24, lmp_sma_6, load_sma_24, load_sma_6, congestion_sma_24, congestion_sma_6, target_pjm_forecast_load_mw, target_dom_da_lmp"
+transform_features,"target_load_x_congestion_t_minus_1, target_load_x_hour_sin, target_load_x_hour_cos, temp_t_minus_1_squared, congestion_t_minus_1_squared, target_forecast_load_squared, ln_target_dom_da_lmp, load_congestion_squared_over_lmp_forecast"

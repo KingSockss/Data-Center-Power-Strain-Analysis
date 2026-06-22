@@ -140,7 +140,25 @@ Model V0.1 lives in `Model_V0.1/`:
 python Model_V0.1/run_ridge_model.py
 ```
 
-Both scripts use the canonical merged dataset at `data/processed/merged/hourly_pjm_dom_dataset.parquet`. They train/reference on the first nine months and report test metrics on the final three months.
+Model V0.1.1 changes the target to one day ahead, `dom_rt_lmp(t+24)`:
+
+```bash
+python Model_V0.1.1/run_ridge_model_t_plus_24.py
+```
+
+Model V0.1.2 keeps the one-day-ahead target and adds target-hour forecast inputs:
+
+```bash
+python Model_V0.1.2/run_ridge_model_t_plus_24_with_forecasts.py
+```
+
+Model V0.1.3 adds nonlinear and interaction transforms to the V0.1.2 features:
+
+```bash
+python Model_V0.1.3/run_ridge_model_with_transforms.py
+```
+
+These scripts use the canonical merged dataset at `data/processed/merged/hourly_pjm_dom_dataset.parquet`. They train/reference on the first nine months and report test metrics on the final three months.
 
 ## Known Limitations
 
